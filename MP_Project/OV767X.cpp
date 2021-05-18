@@ -18,109 +18,113 @@
 #define portInputRegister(P) ((P == 0) ? &NRF_P0->IN : &NRF_P1->IN)
 #endif
 
-extern "C" {
+extern "C"
+{
   // defined in utility/ov7670.c:
-  struct ov7670_fract {
+  struct ov7670_fract
+  {
     uint32_t numerator;
     uint32_t denominator;
   };
 
-  void* ov7670_alloc();
-  void ov7670_free(void*);
+  void *ov7670_alloc();
+  void ov7670_free(void *);
 
-  int ov7670_reset(void*, uint32_t val);
-  int ov7670_detect(void*);
-  void ov7670_configure(void*, int devtype, int format, int wsize, int clock_speed, int pll_bypass, int pclk_hb_disable);
-  int ov7670_s_power(void*, int on);
-  int ov7675_set_framerate(void*, struct ov7670_fract *tpf);
+  int ov7670_reset(void *, uint32_t val);
+  int ov7670_detect(void *);
+  void ov7670_configure(void *, int devtype, int format, int wsize, int clock_speed, int pll_bypass, int pclk_hb_disable);
+  int ov7670_s_power(void *, int on);
+  int ov7675_set_framerate(void *, struct ov7670_fract *tpf);
 
-  int ov7670_s_sat_hue(void*, int sat, int hue);
-  int ov7670_s_brightness(void*, int value);
-  int ov7670_s_contrast(void*, int value);
-  int ov7670_s_hflip(void*, int value);
-  int ov7670_s_vflip(void*, int value);
-  int ov7670_s_gain(void*, int value);
-  int ov7670_s_autogain(void*, int value);
-  int ov7670_s_exp(void*, int value);
-  int ov7670_s_autoexp(void*, int value);
-  int ov7670_s_test_pattern(void*, int value);
+  int ov7670_s_sat_hue(void *, int sat, int hue);
+  int ov7670_s_brightness(void *, int value);
+  int ov7670_s_contrast(void *, int value);
+  int ov7670_s_hflip(void *, int value);
+  int ov7670_s_vflip(void *, int value);
+  int ov7670_s_gain(void *, int value);
+  int ov7670_s_autogain(void *, int value);
+  int ov7670_s_exp(void *, int value);
+  int ov7670_s_autoexp(void *, int value);
+  int ov7670_s_test_pattern(void *, int value);
 };
 
 const int OV760_D[8] = {
-  OV7670_D0, OV7670_D1, OV7670_D2, OV7670_D3, OV7670_D4, OV7670_D5, OV7670_D6, OV7670_D7
-};
+    OV7670_D0, OV7670_D1, OV7670_D2, OV7670_D3, OV7670_D4, OV7670_D5, OV7670_D6, OV7670_D7};
 
-OV767X::OV767X() :
-  _ov7670(NULL),
-  _saturation(128),
-  _hue(0)
+OV767X::OV767X() : _ov7670(NULL),
+                   _saturation(128),
+                   _hue(0)
 {
   setPins(OV7670_VSYNC, OV7670_HREF, OV7670_PLK, OV7670_XCLK, OV760_D);
 }
 
 OV767X::~OV767X()
 {
-  if (_ov7670) {
+  if (_ov7670)
+  {
     ov7670_free(_ov7670);
   }
 }
 
 int OV767X::begin(int resolution, int format, int fps)
 {
-  switch (resolution) {
-    case VGA:
-      _width = 640;
-      _height = 480;
-      break;
+  switch (resolution)
+  {
+  case VGA:
+    _width = 640;
+    _height = 480;
+    break;
 
-    case CIF:
-      _width = 352;
-      _height = 240;
-      break;
+  case CIF:
+    _width = 352;
+    _height = 240;
+    break;
 
-    case QVGA:
-      _width = 320;
-      _height = 240;
-      break;
+  case QVGA:
+    _width = 320;
+    _height = 240;
+    break;
 
-    case QCIF:
-      _width = 176;
-      _height = 144;
-      break;
+  case QCIF:
+    _width = 176;
+    _height = 144;
+    break;
 
-    case QQVGA:
-      _width = 160;
-      _height = 120;
-      break;
+  case QQVGA:
+    _width = 160;
+    _height = 120;
+    break;
 
-    default:
-      return 0;
+  default:
+    return 0;
   }
 
   _grayscale = false;
-  switch (format) {
-    case YUV422:
-    case RGB444:
-    case RGB565:
-      _bytesPerPixel = 2;
-      break;
-      
-    case GRAYSCALE:
-      format = YUV422;    // We use YUV422 but discard U and V bytes
-      _bytesPerPixel = 2; // 2 input bytes per pixel of which 1 is discarded
-      _grayscale = true;
-      break;      
+  switch (format)
+  {
+  case YUV422:
+  case RGB444:
+  case RGB565:
+    _bytesPerPixel = 2;
+    break;
 
-    default:
-      return 0;
+  case GRAYSCALE:
+    format = YUV422;    // We use YUV422 but discard U and V bytes
+    _bytesPerPixel = 2; // 2 input bytes per pixel of which 1 is discarded
+    _grayscale = true;
+    break;
+
+  default:
+    return 0;
   }
 
-// The only frame rates which work on the Nano 33 BLE are 1 and 5 FPS
+  // The only frame rates which work on the Nano 33 BLE are 1 and 5 FPS
   if (fps != 1 && fps != 5)
     return 0;
 
   _ov7670 = ov7670_alloc();
-  if (!_ov7670) {
+  if (!_ov7670)
+  {
     end();
 
     return 0;
@@ -131,7 +135,8 @@ int OV767X::begin(int resolution, int format, int fps)
   pinMode(_pclkPin, INPUT);
   pinMode(_xclkPin, OUTPUT);
 
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 8; i++)
+  {
     pinMode(_dPins[i], INPUT);
   }
 
@@ -148,16 +153,18 @@ int OV767X::begin(int resolution, int format, int fps)
 
   delay(1000);
 
-  if (ov7670_detect(_ov7670)) {
+  if (ov7670_detect(_ov7670))
+  {
     end();
 
     return 0;
   }
 
-  ov7670_configure(_ov7670, 0 /*OV7670 = 0, OV7675 = 1*/, format, resolution, 16 /* MHz */, 
-                    0 /*pll bypass*/, 1 /* pclk_hb_disable */);
+  ov7670_configure(_ov7670, 0 /*OV7670 = 0, OV7675 = 1*/, format, resolution, 16 /* MHz */,
+                   0 /*pll bypass*/, 1 /* pclk_hb_disable */);
 
-  if (ov7670_s_power(_ov7670, 1)) {
+  if (ov7670_s_power(_ov7670, 1))
+  {
     end();
 
     return 0;
@@ -181,7 +188,8 @@ void OV767X::end()
 
   Wire.end();
 
-  if (_ov7670) {
+  if (_ov7670)
+  {
     ov7670_free(_ov7670);
   }
 }
@@ -230,83 +238,102 @@ int OV767X::bytesPerPixel() const
 // bits (0-1, 10-15). With 2 groups of bits, we can read, mask, shift and
 // OR them together to form an 8-bit byte with the minimum number of operations.
 //
-void OV767X::readFrame(void* buffer)
+void OV767X::readFrame(void *buffer)
 {
-uint32_t ulPin = 33; // P1.xx set of GPIO is in 'pin' 32 and above
-NRF_GPIO_Type * port;
+  uint32_t ulPin = 33; // P1.xx set of GPIO is in 'pin' 32 and above
+  NRF_GPIO_Type *port;
 
   port = nrf_gpio_pin_port_decode(&ulPin);
 
   noInterrupts();
-  uint8_t* b = (uint8_t*)buffer;
+  uint8_t *b = (uint8_t *)buffer;
   int bytesPerRow = _width * _bytesPerPixel;
 
   // Falling edge indicates start of frame
-  while ((*_vsyncPort & _vsyncMask) == 0); // wait for HIGH
-  while ((*_vsyncPort & _vsyncMask) != 0); // wait for LOW
+  while ((*_vsyncPort & _vsyncMask) == 0)
+    ; // wait for HIGH
+  while ((*_vsyncPort & _vsyncMask) != 0)
+    ; // wait for LOW
 
-  for (int i = 0; i < _height; i++) {
-  // rising edge indicates start of line
-    while ((*_hrefPort & _hrefMask) == 0); // wait for HIGH
+  for (int i = 0; i < _height; i++)
+  {
+    // rising edge indicates start of line
+    while ((*_hrefPort & _hrefMask) == 0)
+      ; // wait for HIGH
 
-    for (int j = 0; j < bytesPerRow; j++) {
+    for (int j = 0; j < bytesPerRow; j++)
+    {
       // rising edges clock each data byte
-      while ((*_pclkPort & _pclkMask) != 0); // wait for LOW
+      while ((*_pclkPort & _pclkMask) != 0)
+        ; // wait for LOW
 
       uint32_t in = port->IN; // read all bits in parallel
 
-      in >>= 2; // place bits 0 and 1 at the "bottom" of the register
-      in &= 0x3f03; // isolate the 8 bits we care about
+      in >>= 2;        // place bits 0 and 1 at the "bottom" of the register
+      in &= 0x3f03;    // isolate the 8 bits we care about
       in |= (in >> 6); // combine the upper 6 and lower 2 bits
 
-      if (!(j & 1) || !_grayscale) {
+      if (!(j & 1) || !_grayscale)
+      {
         *b++ = in;
       }
-      while ((*_pclkPort & _pclkMask) == 0); // wait for HIGH
+      while ((*_pclkPort & _pclkMask) == 0)
+        ; // wait for HIGH
     }
-    while ((*_hrefPort & _hrefMask) != 0); // wait for LOW
+    while ((*_hrefPort & _hrefMask) != 0)
+      ; // wait for LOW
   }
 
   interrupts();
 }
-void OV767X::getCentroid(float* x, float*y)
+void OV767X::getCentroid(float *x, float *y)
 {
-uint32_t ulPin = 33; // P1.xx set of GPIO is in 'pin' 32 and above
-NRF_GPIO_Type * port;
+  *x = 0;
+  *y = 0;
+  uint32_t ulPin = 33; // P1.xx set of GPIO is in 'pin' 32 and above
+  NRF_GPIO_Type *port;
   port = nrf_gpio_pin_port_decode(&ulPin);
   uint8_t lowerColorByte = 0;
-  uint8_t  upperColorByte = 0;
-  noInterrupts();       // arduino function to disable interrupts
+  uint8_t upperColorByte = 0;
+  noInterrupts(); // arduino function to disable interrupts
   int totNum = 0;
-  uint8_t arr [2] = {0,0}
+  uint8_t arr[2] = {0, 0}
   //uint8_t* b = (uint8_t*)buffer;
-  uint8_t* b = arr;
+  uint8_t *b = arr;
   int bytesPerRow = _width * _bytesPerPixel;
 
   // Falling edge indicates start of frame
-  while ((*_vsyncPort & _vsyncMask) == 0); // wait for HIGH
-  while ((*_vsyncPort & _vsyncMask) != 0); // wait for LOW
+  while ((*_vsyncPort & _vsyncMask) == 0)
+    ; // wait for HIGH
+  while ((*_vsyncPort & _vsyncMask) != 0)
+    ; // wait for LOW
 
-  for (int i = 0; i < _height; i++) {
-  // rising edge indicates start of line
-    while ((*_hrefPort & _hrefMask) == 0); // wait for HIGH
+  for (int i = 0; i < _height; i++)
+  {
+    // rising edge indicates start of line
+    while ((*_hrefPort & _hrefMask) == 0)
+      ; // wait for HIGH
 
-    for (int j = 0; j < bytesPerRow; j++) {
+    for (int j = 0; j < bytesPerRow; j++)
+    {
       // rising edges clock each data byte
-      while ((*_pclkPort & _pclkMask) != 0); // wait for LOW
+      while ((*_pclkPort & _pclkMask) != 0)
+        ; // wait for LOW
 
       uint32_t in = port->IN; // read all bits in parallel
 
-      in >>= 2; // place bits 0 and 1 at the "bottom" of the register
-      in &= 0x3f03; // isolate the 8 bits we care about
+      in >>= 2;        // place bits 0 and 1 at the "bottom" of the register
+      in &= 0x3f03;    // isolate the 8 bits we care about
       in |= (in >> 6); // combine the upper 6 and lower 2 bits
 
-      if (!(j & 1) || !_grayscale) {
-        *b++ = in;                    // b, b-1
+      if (!(j & 1) || !_grayscale)
+      {
+        *b++ = in; // b, b-1
       }
-      if(j%2 && *(b-1) == lowerColorByte && *(b-2) == upperColorByte){         // if j is odd [since a pixel is represented using 2bytes] so j=0,j=1 would hold first pixel
+      if (j % 2 && *(b - 1) == lowerColorByte && *(b - 2) == upperColorByte)
+      { // if j is odd [since a pixel is represented using 2bytes] so j=0,j=1 would hold first pixel
         *x += i;
-        *y += (j/2);
+        *y += (j / 2);
         totNum++;
         b = arr;
         /*To understand this, copy the following in a separate file and run it
@@ -326,14 +353,22 @@ NRF_GPIO_Type * port;
             }
         */
       }
-      while ((*_pclkPort & _pclkMask) == 0); // wait for HIGH
+      while ((*_pclkPort & _pclkMask) == 0)
+        ; // wait for HIGH
     }
-    while ((*_hrefPort & _hrefMask) != 0); // wait for LOW
+    while ((*_hrefPort & _hrefMask) != 0)
+      ; // wait for LOW
   }
 
   interrupts();
-  *x/=totNum;
-  *y/=totNum; 
+  if (totNum == 0)
+  {
+    *x = -1;
+    *y = -1;
+    return;
+  }
+  *x /= totNum;
+  *y /= totNum;
 }
 
 void OV767X::testPattern(int pattern)
@@ -357,7 +392,7 @@ void OV767X::setHue(int hue)
 {
   _hue = hue;
 
-   ov7670_s_sat_hue(_ov7670, _saturation, _hue);
+  ov7670_s_sat_hue(_ov7670, _saturation, _hue);
 }
 
 void OV767X::setBrightness(int brightness)
@@ -424,7 +459,7 @@ void OV767X::beginXClk()
 {
   // Generates 16 MHz signal using I2S peripheral
   NRF_I2S->CONFIG.MCKEN = (I2S_CONFIG_MCKEN_MCKEN_ENABLE << I2S_CONFIG_MCKEN_MCKEN_Pos);
-  NRF_I2S->CONFIG.MCKFREQ = I2S_CONFIG_MCKFREQ_MCKFREQ_32MDIV2  << I2S_CONFIG_MCKFREQ_MCKFREQ_Pos;
+  NRF_I2S->CONFIG.MCKFREQ = I2S_CONFIG_MCKFREQ_MCKFREQ_32MDIV2 << I2S_CONFIG_MCKFREQ_MCKFREQ_Pos;
   NRF_I2S->CONFIG.MODE = I2S_CONFIG_MODE_MODE_MASTER << I2S_CONFIG_MODE_MODE_Pos;
 
   NRF_I2S->PSEL.MCK = (digitalPinToPinName(_xclkPin) << I2S_PSEL_MCK_PIN_Pos);
